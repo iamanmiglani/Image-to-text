@@ -66,12 +66,15 @@ def generate_pdf_document(extracted_text):
     return output_path
 
 def reset_session():
-    """Clear all session variables and force a full UI reset."""
-    st.session_state.clear()
+    """Completely reset the app and reload everything."""
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
     st.experimental_rerun()
 
 def main():
     st.title("Image Text Extraction App")
+
+    # Load EasyOCR reader (cached for performance)
     reader = load_easyocr_reader()
 
     # Initialize session state variables
