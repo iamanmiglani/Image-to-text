@@ -7,6 +7,7 @@ import tempfile
 import uuid
 from PIL import Image
 import pyheif
+#### Great starting point
 
 # Preload EasyOCR reader
 @st.cache_resource
