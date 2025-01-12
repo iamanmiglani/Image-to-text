@@ -141,9 +141,11 @@ def main():
 
     # Output format selection
     if st.session_state.uploaded:
-        st.session_state.output_format = st.selectbox(
-            "Select Output Format", ["Word", "PDF"], disabled=not st.session_state.uploaded
+        output_format = st.selectbox(
+            "Select Output Format", ["Word", "PDF"], index=0 if st.session_state.output_format is None else ["Word", "PDF"].index(st.session_state.output_format)
         )
+        if output_format:
+            st.session_state.output_format = output_format  # Save the selection in session state
 
     # Generate and download document
     if st.session_state.uploaded and st.session_state.output_format:
@@ -165,7 +167,7 @@ def main():
 
             # Reset the session state after download
             st.session_state.update(
-                uploaded=False, submitted=False, last_activity=time.time(), output_format=None
+                uploaded=False, submitted=False, last_activity=time.time(), output_format=None, extracted_text=None
             )
             st.experimental_rerun()  # Ensure the screen resets immediately
 
