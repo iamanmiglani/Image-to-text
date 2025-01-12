@@ -3,6 +3,7 @@ import easyocr
 from PIL import Image, ImageDraw, ImageFont
 import os
 from docx import Document
+from fpdf import FPDF
 
 def extract_text_from_images(images, reader):
     """Extract text from a list of images using EasyOCR."""
@@ -29,35 +30,26 @@ def generate_word_document(extracted_text):
     doc.save(output_path)
     return output_path
 
-def generate_png_document(extracted_text):
-    """Generate a PNG image containing the extracted text."""
-    font_size = 20
-    padding = 10
-    font = ImageFont.load_default()
+def generate_pdf_document(extracted_text):
+    """Generate a PDF document containing the extracted text."""
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-    # Calculate the dimensions of the image
-    total_width = 800
-    total_height = 0
-    lines = []
+    pdf.cell(200, 10, txt="Extracted Text from Images", ln=True, align='C')
+    pdf.ln(10)
 
     for image_name, text in extracted_text.items():
-        lines.append(f"Image: {image_name}")
-        lines.extend(text)
-        lines.append("")
+        pdf.set_font("Arial", style='B', size=12)
+        pdf.cell(200, 10, txt=f"Image: {image_name}", ln=True)
+        pdf.set_font("Arial", size=12)
+        for line in text:
+            pdf.multi_cell(0, 10, txt=line)
+        pdf.ln(5)
 
-    for line in lines:
-        total_height += font_size + padding
-
-    img = Image.new("RGB", (total_width, total_height), color="white")
-    draw = ImageDraw.Draw(img)
-
-    y = 0
-    for line in lines:
-        draw.text((padding, y), line, fill="black", font=font)
-        y += font_size + padding
-
-    output_path = "extracted_text.png"
-    img.save(output_path)
+    output_path = "extracted_text.pdf"
+    pdf.output(output_path)
     return output_path
 
 def main():
@@ -75,13 +67,13 @@ def main():
             extracted_text = extract_text_from_images(uploaded_files, reader)
             st.write("Text extracted from images successfully!")
 
-            output_format = st.selectbox("Select Output Format", ["Word", "PNG"])
+            output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
 
             if st.button("Generate Document"):
                 if output_format == "Word":
                     output_path = generate_word_document(extracted_text)
-                elif output_format == "PNG":
-                    output_path = generate_png_document(extracted_text)
+                elif output_format == "PDF":
+                    output_path = generate_pdf_document(extracted_text)
 
                 with open(output_path, "rb") as file:
                     st.download_button(
