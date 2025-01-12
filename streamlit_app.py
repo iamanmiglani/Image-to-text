@@ -7,6 +7,7 @@ import tempfile
 import uuid
 from docx import Document
 from fpdf import FPDF
+import time
 
 @st.cache_resource
 def load_easyocr_reader():
@@ -108,11 +109,20 @@ def main():
     if "submitted" not in st.session_state:
         st.session_state.submitted = False
 
+    if "last_activity" not in st.session_state:
+        st.session_state.last_activity = time.time()
+
+    # Check for inactivity
+    if time.time() - st.session_state.last_activity > 120:
+        st.error("Too many requests, we are working on it.")
+        st.stop()
+
     uploaded_files = st.file_uploader(
         "Upload Images", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True, disabled=st.session_state.uploaded
     )
 
     if uploaded_files and not st.session_state.uploaded:
+        st.session_state.last_activity = time.time()
         with st.spinner("App is extracting text..."):
             if len(uploaded_files) > 10:
                 st.error("You can upload a maximum of 10 images.")
@@ -126,6 +136,7 @@ def main():
                 )
 
                 if st.button("Generate Document"):
+                    st.session_state.last_activity = time.time()
                     with st.spinner("Preparing your document..."):
                         if output_format == "Word":
                             output_path = generate_word_document(extracted_text)
@@ -143,7 +154,7 @@ def main():
                         st.session_state.submitted = True
 
     if st.session_state.uploaded and st.session_state.submitted:
-        st.button("Start Over", on_click=lambda: st.session_state.update(uploaded=False, submitted=False))
+        st.button("Start Over", on_click=lambda: st.session_state.update(uploaded=False, submitted=False, last_activity=time.time()))
 
 if __name__ == "__main__":
     main()
