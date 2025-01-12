@@ -4,6 +4,7 @@ from PIL import Image
 import os
 from docx import Document
 from fpdf import FPDF
+import time
 
 def extract_text_from_images(images, reader):
     """Extract text from a list of images using EasyOCR."""
@@ -77,6 +78,9 @@ def main():
                         output_path = generate_word_document(extracted_text)
                     elif output_format == "PDF":
                         output_path = generate_pdf_document(extracted_text)
+
+                    # Artificial delay to ensure spinner visibility
+                    time.sleep(1)
 
                 with open(output_path, "rb") as file:
                     st.download_button(
