@@ -102,29 +102,35 @@ def main():
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
 
+    if "uploaded" not in st.session_state:
+        st.session_state.uploaded = False
+
     if "submitted" not in st.session_state:
         st.session_state.submitted = False
 
-    if not st.session_state.submitted:
-        uploaded_files = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True)
+    uploaded_files = st.file_uploader(
+        "Upload Images", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True, disabled=st.session_state.uploaded
+    )
 
-        if uploaded_files:
-            with st.spinner("App is extracting text..."):
-                if len(uploaded_files) > 10:
-                    st.error("You can upload a maximum of 10 images.")
-                else:
-                    extracted_text = extract_text_from_images(uploaded_files, reader)
+    if uploaded_files and not st.session_state.uploaded:
+        with st.spinner("App is extracting text..."):
+            if len(uploaded_files) > 10:
+                st.error("You can upload a maximum of 10 images.")
+            else:
+                extracted_text = extract_text_from_images(uploaded_files, reader)
+                st.success("Text extracted from images successfully!")
+                st.session_state.uploaded = True
 
-                    st.success("Text extracted from images successfully!")
+                output_format = st.selectbox(
+                    "Select Output Format", ["Word", "PDF"], disabled=st.session_state.submitted
+                )
 
-                    output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
-
-                    if st.button("Generate Document"):
-                        with st.spinner("Preparing your document..."):
-                            if output_format == "Word":
-                                output_path = generate_word_document(extracted_text)
-                            elif output_format == "PDF":
-                                output_path = generate_pdf_document(extracted_text)
+                if st.button("Generate Document"):
+                    with st.spinner("Preparing your document..."):
+                        if output_format == "Word":
+                            output_path = generate_word_document(extracted_text)
+                        elif output_format == "PDF":
+                            output_path = generate_pdf_document(extracted_text)
 
                         with open(output_path, "rb") as file:
                             st.download_button(
@@ -134,10 +140,10 @@ def main():
                                 mime="application/octet-stream",
                             )
                         
-                        # Reset the state after download
                         st.session_state.submitted = True
-    else:
-        st.button("Start Over", on_click=lambda: st.session_state.update(submitted=False))
+
+    if st.session_state.uploaded and st.session_state.submitted:
+        st.button("Start Over", on_click=lambda: st.session_state.update(uploaded=False, submitted=False))
 
 if __name__ == "__main__":
     main()
