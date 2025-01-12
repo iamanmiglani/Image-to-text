@@ -69,8 +69,7 @@ def main():
         else:
             reader = load_easyocr_reader()
 
-            with st.spinner("App is extracting text..."):
-                extracted_text = extract_text_from_images(uploaded_files, reader)
+            extracted_text = extract_text_from_images(uploaded_files, reader)
 
             st.success("Text extracted from images successfully!")
 
