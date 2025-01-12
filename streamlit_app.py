@@ -65,7 +65,7 @@ def main():
         """<div style='text-align: right;'>
         <strong style='color: green;'>Say Hi! to the developer</strong>
         <a href='https://www.linkedin.com/in/amanmiglani/' target='_blank'>
-        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px; animation: pulse 1s infinite;' />
+        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px; animation: pulse 2s infinite;' />
         </a>
         </div>
         <style>
