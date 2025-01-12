@@ -4,4 +4,3 @@ Pillow
 python-docx
 fpdf
 pyheif
-redis
