@@ -66,7 +66,10 @@ def generate_pdf_document(extracted_text):
     return output_path
 
 def reset_session():
-    st.session_state.clear()
+    """Clear all session variables and force app reload."""
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.experimental_rerun()
 
 def main():
     st.title("Image Text Extraction App")
@@ -128,7 +131,6 @@ def main():
                     with col1:
                         if st.button("Yes, Reset"):
                             reset_session()
-                            st.experimental_rerun()
                     with col2:
                         if st.button("No, Stop"):
                             st.success("Thank you! The app is now ready for the next user.")
@@ -142,7 +144,6 @@ def main():
         if elapsed_time > 120:
             st.warning("Time's up! Resetting the app for the next user.")
             reset_session()
-            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
