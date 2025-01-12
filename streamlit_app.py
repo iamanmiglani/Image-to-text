@@ -8,10 +8,18 @@ import uuid
 from PIL import Image
 import pyheif
 import time
+from datetime import datetime, timedelta
 
-# Global variable to manage the user lock
+# Global lock timeout in seconds
+LOCK_TIMEOUT = 300  # 5 minutes
+
+# Initialize lock tracking in session state
+if "lock_time" not in st.session_state:
+    st.session_state.lock_time = None
 if "user_lock" not in st.session_state:
     st.session_state.user_lock = False
+if "current_user" not in st.session_state:
+    st.session_state.current_user = False
 
 # Preload EasyOCR reader
 @st.cache_resource
@@ -72,27 +80,39 @@ def generate_pdf_document(extracted_text):
 def reset_session():
     """Clear all session variables and reload the app."""
     st.session_state.user_lock = False  # Release the lock
+    st.session_state.current_user = False
+    st.session_state.lock_time = None
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.experimental_rerun()
 
+def check_lock_status():
+    """Check if the lock has expired and release it if necessary."""
+    if st.session_state.lock_time:
+        elapsed_time = datetime.now() - st.session_state.lock_time
+        if elapsed_time.total_seconds() > LOCK_TIMEOUT:
+            st.session_state.user_lock = False
+            st.session_state.current_user = False
+            st.session_state.lock_time = None
+
 def main():
-    # Check if another user is already using the app
-    if st.session_state.user_lock and not st.session_state.get("current_user", False):
-        st.warning("User limit has reached, please visit another time.")
+    # Check lock status and timeout
+    check_lock_status()
+
+    if st.session_state.user_lock and not st.session_state.current_user:
+        st.warning("The app is currently in use by another user. Please try again later.")
         return
 
-    # Acquire the user lock
     if not st.session_state.user_lock:
         st.session_state.user_lock = True
         st.session_state.current_user = True
+        st.session_state.lock_time = datetime.now()
 
     st.title("Image Text Extraction App")
 
     # Load EasyOCR reader (cached for performance)
     reader = load_easyocr_reader()
 
-    # Initialize session state variables
     if "extracted_text" not in st.session_state:
         st.session_state.extracted_text = None
     if "file_path" not in st.session_state:
@@ -101,12 +121,10 @@ def main():
         st.session_state.download_complete = False
 
     if not st.session_state.download_complete:
-        # File uploader
         uploaded_files = st.file_uploader(
             "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
         )
 
-        # Text extraction logic
         if uploaded_files:
             if st.session_state.extracted_text is None:
                 with st.spinner("Extracting text..."):
@@ -116,14 +134,11 @@ def main():
                         st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
                         st.success("Text extraction complete!")
 
-        # Document generation logic
         if st.session_state.extracted_text:
-            # Allow the user to select the output format
             output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
             if output_format:
                 st.session_state.output_format = output_format
 
-            # Generate document only when the button is clicked
             if st.button("Generate Document"):
                 with st.spinner("Preparing your document..."):
                     if st.session_state.output_format == "Word":
@@ -134,7 +149,6 @@ def main():
                     st.session_state.file_path = file_path
                     st.success(f"{st.session_state.output_format} document ready!")
 
-            # Display the download button if the document is ready
             if st.session_state.file_path:
                 with open(st.session_state.file_path, "rb") as file:
                     download_button_clicked = st.download_button(
@@ -144,22 +158,20 @@ def main():
                         mime="application/octet-stream",
                     )
 
-                    # Trigger the end screen after download
                     if download_button_clicked:
                         st.session_state.download_complete = True
                         st.experimental_rerun()
     else:
-        # Display the end screen
         st.info("Do you want to use the app again?")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Yes, Reset"):
-                reset_session()  # Clear all data and start from the beginning
+                reset_session()
         with col2:
             if st.button("No, Exit"):
                 st.success("Thanks for using the app!")
-                st.session_state.user_lock = False  # Release the lock
-                st.stop()  # Stop all further execution
+                reset_session()
+                st.stop()
 
 if __name__ == "__main__":
     main()
