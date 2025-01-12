@@ -3,6 +3,3 @@ easyocr
 Pillow
 python-docx
 fpdf
-time
-os
-PIL
