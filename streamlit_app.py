@@ -93,7 +93,7 @@ def main():
                 if output_format:
                     st.session_state["output_format"] = output_format
 
-                # Generate document
+                # Generate document only when button is clicked
                 if st.button("Generate Document"):
                     with st.spinner("Preparing your document..."):
                         if output_format == "Word":
