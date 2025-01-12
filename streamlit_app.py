@@ -3,6 +3,8 @@ import easyocr
 from PIL import Image
 import pyheif
 import os
+import tempfile
+import uuid
 from docx import Document
 from fpdf import FPDF
 
@@ -35,6 +37,11 @@ def extract_text_from_images(images, reader):
         extracted_text[image_file.name] = results
     return extracted_text
 
+def generate_unique_filename(base_name):
+    """Generate a unique filename to prevent conflicts."""
+    unique_id = uuid.uuid4()
+    return f"{unique_id}_{base_name}"
+
 def generate_word_document(extracted_text):
     """Generate a Word document containing the extracted text."""
     doc = Document()
@@ -45,7 +52,8 @@ def generate_word_document(extracted_text):
         for line in text:
             doc.add_paragraph(line)
 
-    output_path = "extracted_text.docx"
+    temp_dir = tempfile.mkdtemp()
+    output_path = os.path.join(temp_dir, generate_unique_filename("extracted_text.docx"))
     doc.save(output_path)
     return output_path
 
@@ -67,7 +75,8 @@ def generate_pdf_document(extracted_text):
             pdf.multi_cell(0, 10, txt=line)
         pdf.ln(5)
 
-    output_path = "extracted_text.pdf"
+    temp_dir = tempfile.mkdtemp()
+    output_path = os.path.join(temp_dir, generate_unique_filename("extracted_text.pdf"))
     pdf.output(output_path)
     return output_path
 
@@ -89,6 +98,9 @@ def main():
     )
 
     st.write("Upload 1-10 images to extract text and generate a document.")
+
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
 
     if "submitted" not in st.session_state:
         st.session_state.submitted = False
