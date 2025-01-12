@@ -7,7 +7,11 @@ import tempfile
 import uuid
 from PIL import Image
 import pyheif
-#### Great starting point
+import time
+
+# Global variable to manage the user lock
+if "user_lock" not in st.session_state:
+    st.session_state.user_lock = False
 
 # Preload EasyOCR reader
 @st.cache_resource
@@ -67,11 +71,22 @@ def generate_pdf_document(extracted_text):
 
 def reset_session():
     """Clear all session variables and reload the app."""
+    st.session_state.user_lock = False  # Release the lock
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.experimental_rerun()
 
 def main():
+    # Check if another user is already using the app
+    if st.session_state.user_lock and not st.session_state.get("current_user", False):
+        st.warning("User limit has reached, please visit another time.")
+        return
+
+    # Acquire the user lock
+    if not st.session_state.user_lock:
+        st.session_state.user_lock = True
+        st.session_state.current_user = True
+
     st.title("Image Text Extraction App")
 
     # Load EasyOCR reader (cached for performance)
@@ -143,6 +158,7 @@ def main():
         with col2:
             if st.button("No, Exit"):
                 st.success("Thanks for using the app!")
+                st.session_state.user_lock = False  # Release the lock
                 st.stop()  # Stop all further execution
 
 if __name__ == "__main__":
