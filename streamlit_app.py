@@ -74,6 +74,9 @@ def generate_pdf_document(extracted_text):
 def main():
     st.title("Image Text Extraction App")
 
+    # Preload EasyOCR model
+    reader = load_easyocr_reader()
+
     # Add message and LinkedIn logo without animation
     st.markdown(
         """<div style='text-align: right;'>
@@ -98,8 +101,6 @@ def main():
                 if len(uploaded_files) > 10:
                     st.error("You can upload a maximum of 10 images.")
                 else:
-                    reader = load_easyocr_reader()
-
                     extracted_text = extract_text_from_images(uploaded_files, reader)
 
                     st.success("Text extracted from images successfully!")
