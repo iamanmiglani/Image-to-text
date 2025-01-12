@@ -64,16 +64,19 @@ def main():
         else:
             reader = easyocr.Reader(["en"], gpu=False)
 
-            extracted_text = extract_text_from_images(uploaded_files, reader)
-            st.write("Text extracted from images successfully!")
+            with st.spinner("App is extracting text..."):
+                extracted_text = extract_text_from_images(uploaded_files, reader)
+
+            st.success("Text extracted from images successfully!")
 
             output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
 
             if st.button("Generate Document"):
-                if output_format == "Word":
-                    output_path = generate_word_document(extracted_text)
-                elif output_format == "PDF":
-                    output_path = generate_pdf_document(extracted_text)
+                with st.spinner("Preparing your document..."):
+                    if output_format == "Word":
+                        output_path = generate_word_document(extracted_text)
+                    elif output_format == "PDF":
+                        output_path = generate_pdf_document(extracted_text)
 
                 with open(output_path, "rb") as file:
                     st.download_button(
