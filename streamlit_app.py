@@ -61,37 +61,46 @@ def main():
     st.title("Image Text Extraction App")
     st.write("Upload 1-10 images to extract text and generate a document.")
 
-    uploaded_files = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+    if "submitted" not in st.session_state:
+        st.session_state.submitted = False
 
-    if uploaded_files:
-        if len(uploaded_files) > 10:
-            st.error("You can upload a maximum of 10 images.")
-        else:
-            reader = load_easyocr_reader()
+    if not st.session_state.submitted:
+        uploaded_files = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-            extracted_text = extract_text_from_images(uploaded_files, reader)
+        if uploaded_files:
+            if len(uploaded_files) > 10:
+                st.error("You can upload a maximum of 10 images.")
+            else:
+                reader = load_easyocr_reader()
 
-            st.success("Text extracted from images successfully!")
+                extracted_text = extract_text_from_images(uploaded_files, reader)
 
-            output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
+                st.success("Text extracted from images successfully!")
 
-            if st.button("Generate Document"):
-                with st.spinner("Preparing your document..."):
-                    if output_format == "Word":
-                        output_path = generate_word_document(extracted_text)
-                    elif output_format == "PDF":
-                        output_path = generate_pdf_document(extracted_text)
+                output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
 
-                    # Artificial delay to ensure spinner visibility
-                    time.sleep(1)
+                if st.button("Generate Document"):
+                    with st.spinner("Preparing your document..."):
+                        if output_format == "Word":
+                            output_path = generate_word_document(extracted_text)
+                        elif output_format == "PDF":
+                            output_path = generate_pdf_document(extracted_text)
 
-                with open(output_path, "rb") as file:
-                    st.download_button(
-                        label=f"Download {output_format} Document",
-                        data=file,
-                        file_name=os.path.basename(output_path),
-                        mime="application/octet-stream",
-                    )
+                        # Artificial delay to ensure spinner visibility
+                        time.sleep(1)
+
+                    with open(output_path, "rb") as file:
+                        st.download_button(
+                            label=f"Download {output_format} Document",
+                            data=file,
+                            file_name=os.path.basename(output_path),
+                            mime="application/octet-stream",
+                        )
+                    
+                    # Reset the state after download
+                    st.session_state.submitted = True
+    else:
+        st.button("Start Over", on_click=lambda: st.session_state.update(submitted=False))
 
 if __name__ == "__main__":
     main()
