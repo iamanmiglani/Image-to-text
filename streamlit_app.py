@@ -8,7 +8,7 @@ import uuid
 from PIL import Image
 import pyheif
 
-# List of all supported languages in EasyOCR
+# EasyOCR supported languages
 EASYOCR_LANGUAGES = {
     "af": "Afrikaans", "ar": "Arabic", "az": "Azerbaijani", "bg": "Bulgarian",
     "bn": "Bengali", "bs": "Bosnian", "ca": "Catalan", "cs": "Czech",
@@ -17,22 +17,26 @@ EASYOCR_LANGUAGES = {
     "fr": "French", "ga": "Irish", "gl": "Galician", "gu": "Gujarati",
     "he": "Hebrew", "hi": "Hindi", "hr": "Croatian", "hu": "Hungarian",
     "id": "Indonesian", "is": "Icelandic", "it": "Italian", "ja": "Japanese",
-    "ka": "Georgian", "kk": "Kazakh", "kn": "Kannada", "ko": "Korean",
-    "ku": "Kurdish", "la": "Latin", "lt": "Lithuanian", "lv": "Latvian",
-    "mi": "Maori", "ml": "Malayalam", "mr": "Marathi", "ms": "Malay",
-    "mt": "Maltese", "ne": "Nepali", "nl": "Dutch", "no": "Norwegian",
-    "pa": "Punjabi", "pl": "Polish", "pt": "Portuguese", "ro": "Romanian",
-    "ru": "Russian", "si": "Sinhala", "sk": "Slovak", "sl": "Slovenian",
-    "sq": "Albanian", "sr": "Serbian", "sv": "Swedish", "sw": "Swahili",
-    "ta": "Tamil", "te": "Telugu", "th": "Thai", "tl": "Tagalog",
-    "tr": "Turkish", "uk": "Ukrainian", "ur": "Urdu", "vi": "Vietnamese",
-    "zh-cn": "Chinese (Simplified)", "zh-tw": "Chinese (Traditional)"
+    "ka": "Georgian", "kk": "Kazakh", "ko": "Korean", "la": "Latin",
+    "lt": "Lithuanian", "lv": "Latvian", "mi": "Maori", "ml": "Malayalam",
+    "mr": "Marathi", "ms": "Malay", "mt": "Maltese", "ne": "Nepali",
+    "nl": "Dutch", "no": "Norwegian", "pa": "Punjabi", "pl": "Polish",
+    "pt": "Portuguese", "ro": "Romanian", "ru": "Russian", "si": "Sinhala",
+    "sk": "Slovak", "sl": "Slovenian", "sq": "Albanian", "sr": "Serbian",
+    "sv": "Swedish", "sw": "Swahili", "ta": "Tamil", "te": "Telugu",
+    "th": "Thai", "tl": "Tagalog", "tr": "Turkish", "uk": "Ukrainian",
+    "ur": "Urdu", "vi": "Vietnamese", "zh-cn": "Chinese (Simplified)", 
+    "zh-tw": "Chinese (Traditional)"
 }
 
 # Preload EasyOCR reader
 @st.cache_resource
 def load_easyocr_reader(languages):
-    return easyocr.Reader(languages, gpu=False)
+    try:
+        return easyocr.Reader(languages, gpu=False)
+    except Exception as e:
+        st.error(f"Error loading EasyOCR reader for languages {languages}: {e}")
+        raise
 
 def convert_heic_to_png(image_file):
     heif_file = pyheif.read(image_file.read())
@@ -150,15 +154,15 @@ def main():
                 st.session_state.file_path = file_path
                 st.success(f"{st.session_state.output_format} document ready!")
 
-        # Display the download button if the document is ready
-        if st.session_state.file_path:
-            with open(st.session_state.file_path, "rb") as file:
-                st.download_button(
-                    label=f"Download {st.session_state.output_format} Document",
-                    data=file,
-                    file_name=os.path.basename(st.session_state.file_path),
-                    mime="application/octet-stream",
-                )
+            # Display the download button if the document is ready
+            if st.session_state.file_path:
+                with open(st.session_state.file_path, "rb") as file:
+                    st.download_button(
+                        label=f"Download {st.session_state.output_format} Document",
+                        data=file,
+                        file_name=os.path.basename(st.session_state.file_path),
+                        mime="application/octet-stream",
+                    )
 
 if __name__ == "__main__":
     main()
