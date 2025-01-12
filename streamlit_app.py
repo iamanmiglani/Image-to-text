@@ -60,18 +60,13 @@ def generate_pdf_document(extracted_text):
 def main():
     st.title("Image Text Extraction App")
 
-    # Add message, LinkedIn logo with hyperlink, and animated button
+    # Add message and LinkedIn logo with animation
     st.markdown(
         """<div style='text-align: right;'>
         <strong style='color: green;'>Say Hi! to the developer</strong>
         <a href='https://www.linkedin.com/in/amanmiglani/' target='_blank'>
-        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px;' />
+        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px; animation: pulse 1s infinite;' />
         </a>
-        <div style='margin-top: 10px;'>
-        <button onclick="window.location.href='https://www.linkedin.com/in/amanmiglani/'" style='animation: pulse 1s infinite; padding: 10px 20px; background-color: #0e76a8; border: none; color: white; border-radius: 5px; cursor: pointer;'>
-        Click Me
-        </button>
-        </div>
         </div>
         <style>
         @keyframes pulse {
