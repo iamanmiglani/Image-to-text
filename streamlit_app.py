@@ -7,7 +7,6 @@ import tempfile
 import uuid
 from PIL import Image
 import pyheif
-import time
 
 # Preload EasyOCR reader
 @st.cache_resource
@@ -66,7 +65,7 @@ def generate_pdf_document(extracted_text):
     return output_path
 
 def reset_session():
-    """Completely reset the app and reload everything."""
+    """Clear all session variables and reload the app."""
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.experimental_rerun()
@@ -82,8 +81,8 @@ def main():
         st.session_state.extracted_text = None
     if "file_path" not in st.session_state:
         st.session_state.file_path = None
-    if "idle_start_time" not in st.session_state:
-        st.session_state.idle_start_time = None
+    if "prompt_user" not in st.session_state:
+        st.session_state.prompt_user = False  # Track if user prompt is active
 
     # File uploader
     uploaded_files = st.file_uploader(
@@ -128,27 +127,27 @@ def main():
                     mime="application/octet-stream",
                 )
 
-                # If the download button is clicked, ask to reset or stop
+                # Trigger user prompt after download
                 if download_button_clicked:
-                    st.session_state.idle_start_time = time.time()
-                    st.info("Do you want to reset the screen or stop using the app?")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("Yes, Reset"):
-                            reset_session()
-                    with col2:
-                        if st.button("No, Stop"):
-                            st.success("Thank you! The app is now ready for the next user.")
-                            st.stop()  # Stops all further actions
+                    st.session_state.prompt_user = True
+                    reset_session_data(reader)
 
-    # Idle timeout logic
-    if st.session_state.idle_start_time:
-        elapsed_time = time.time() - st.session_state.idle_start_time
-        remaining_time = max(0, 120 - int(elapsed_time))
-        st.info(f"Please make a choice within {remaining_time // 60} min {remaining_time % 60} sec.")
-        if elapsed_time > 120:
-            st.warning("Time's up! Resetting the app for the next user.")
-            reset_session()
+    # Prompt the user to reset or stop
+    if st.session_state.prompt_user:
+        st.info("Do you want to reuse the app?")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Yes, Reset"):
+                reset_session()  # Clear all data and start from the beginning
+        with col2:
+            if st.button("No, Stop"):
+                st.success("Thanks for using the app!")
+                st.stop()  # Stop all further execution
+
+def reset_session_data(reader):
+    """Clear backend data and prepare OCR for the next user."""
+    st.session_state.extracted_text = None
+    st.session_state.file_path = None
 
 if __name__ == "__main__":
     main()
