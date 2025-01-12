@@ -121,7 +121,7 @@ def main():
         st.stop()
 
     remaining_time = max(0, 120 - int(elapsed_time))
-    st.info(f"The screen will reset in {remaining_time // 60} min {remaining_time % 60} sec, if idle.")
+    st.info(f"The screen will reset in {remaining_time // 60} min {remaining_time % 60} sec if idle.")
 
     # File upload
     uploaded_files = st.file_uploader(
@@ -161,10 +161,13 @@ def main():
                         data=file,
                         file_name=os.path.basename(output_path),
                         mime="application/octet-stream",
-                        on_click=lambda: st.session_state.update(
-                            uploaded=False, submitted=False, last_activity=time.time(), output_format=None
-                        )
                     )
+
+            # Reset the session state after download
+            st.session_state.update(
+                uploaded=False, submitted=False, last_activity=time.time(), output_format=None
+            )
+            st.experimental_rerun()  # Ensure the screen resets immediately
 
     # Start over button
     if st.session_state.submitted:
