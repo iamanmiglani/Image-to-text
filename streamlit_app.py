@@ -109,12 +109,25 @@ def main():
 
                         # Download button
                         with open(file_path, "rb") as file:
-                            st.download_button(
+                            download_button_clicked = st.download_button(
                                 label=f"Download {output_format} Document",
                                 data=file,
                                 file_name=os.path.basename(file_path),
                                 mime="application/octet-stream",
                             )
+
+                            # If download button is clicked, ask to reset or stop
+                            if download_button_clicked:
+                                st.info("Do you want to reset the screen and start over?")
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    if st.button("Yes, Reset"):
+                                        reset_session()
+                                        st.experimental_rerun()
+                                with col2:
+                                    if st.button("No, Stop"):
+                                        st.success("Thank you! The app is now ready for the next user.")
+                                        st.stop()  # Stops all further actions
 
     # Timer to reset session
     if st.session_state.start_time:
