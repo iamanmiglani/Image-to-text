@@ -7,36 +7,16 @@ import tempfile
 import uuid
 from PIL import Image
 import pyheif
+import time
 
-# EasyOCR supported languages
-EASYOCR_LANGUAGES = {
-    "af": "Afrikaans", "ar": "Arabic", "az": "Azerbaijani", "bg": "Bulgarian",
-    "bn": "Bengali", "bs": "Bosnian", "ca": "Catalan", "cs": "Czech",
-    "cy": "Welsh", "da": "Danish", "de": "German", "en": "English",
-    "es": "Spanish", "et": "Estonian", "fa": "Persian", "fi": "Finnish",
-    "fr": "French", "ga": "Irish", "gl": "Galician", "gu": "Gujarati",
-    "he": "Hebrew", "hi": "Hindi", "hr": "Croatian", "hu": "Hungarian",
-    "id": "Indonesian", "is": "Icelandic", "it": "Italian", "ja": "Japanese",
-    "ka": "Georgian", "kk": "Kazakh", "ko": "Korean", "la": "Latin",
-    "lt": "Lithuanian", "lv": "Latvian", "mi": "Maori", "ml": "Malayalam",
-    "mr": "Marathi", "ms": "Malay", "mt": "Maltese", "ne": "Nepali",
-    "nl": "Dutch", "no": "Norwegian", "pa": "Punjabi", "pl": "Polish",
-    "pt": "Portuguese", "ro": "Romanian", "ru": "Russian", "si": "Sinhala",
-    "sk": "Slovak", "sl": "Slovenian", "sq": "Albanian", "sr": "Serbian",
-    "sv": "Swedish", "sw": "Swahili", "ta": "Tamil", "te": "Telugu",
-    "th": "Thai", "tl": "Tagalog", "tr": "Turkish", "uk": "Ukrainian",
-    "ur": "Urdu", "vi": "Vietnamese", "zh-cn": "Chinese (Simplified)", 
-    "zh-tw": "Chinese (Traditional)"
-}
+# Global variable to manage the user lock
+if "user_lock" not in st.session_state:
+    st.session_state.user_lock = False
 
 # Preload EasyOCR reader
 @st.cache_resource
-def load_easyocr_reader(languages):
-    try:
-        return easyocr.Reader(languages, gpu=False)
-    except Exception as e:
-        st.error(f"Error loading EasyOCR reader for languages {languages}: {e}")
-        raise
+def load_easyocr_reader():
+    return easyocr.Reader(["en"], gpu=False)
 
 def convert_heic_to_png(image_file):
     heif_file = pyheif.read(image_file.read())
@@ -91,27 +71,26 @@ def generate_pdf_document(extracted_text):
 
 def reset_session():
     """Clear all session variables and reload the app."""
+    st.session_state.user_lock = False  # Release the lock
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.experimental_rerun()
 
 def main():
-    st.title("Image Text Extraction App")
-
-    # Select languages
-    selected_languages = st.multiselect(
-        "Select OCR Languages",
-        options=list(EASYOCR_LANGUAGES.keys()),
-        format_func=lambda lang: EASYOCR_LANGUAGES[lang],
-        default=["en"]  # Default to English
-    )
-
-    if not selected_languages:
-        st.warning("Please select at least one language.")
+    # Check if another user is already using the app
+    if st.session_state.user_lock and not st.session_state.get("current_user", False):
+        st.warning("User limit has reached, please visit another time.")
         return
 
+    # Acquire the user lock
+    if not st.session_state.user_lock:
+        st.session_state.user_lock = True
+        st.session_state.current_user = True
+
+    st.title("Image Text Extraction App")
+
     # Load EasyOCR reader (cached for performance)
-    reader = load_easyocr_reader(selected_languages)
+    reader = load_easyocr_reader()
 
     # Initialize session state variables
     if "extracted_text" not in st.session_state:
@@ -121,48 +100,66 @@ def main():
     if "download_complete" not in st.session_state:
         st.session_state.download_complete = False
 
-    # File uploader
-    uploaded_files = st.file_uploader(
-        "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
-    )
+    if not st.session_state.download_complete:
+        # File uploader
+        uploaded_files = st.file_uploader(
+            "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
+        )
 
-    # Text extraction logic
-    if uploaded_files:
-        if st.session_state.extracted_text is None:
-            with st.spinner("Extracting text..."):
-                if len(uploaded_files) > 10:
-                    st.error("You can upload a maximum of 10 images.")
-                else:
-                    st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
-                    st.success("Text extraction complete!")
+        # Text extraction logic
+        if uploaded_files:
+            if st.session_state.extracted_text is None:
+                with st.spinner("Extracting text..."):
+                    if len(uploaded_files) > 10:
+                        st.error("You can upload a maximum of 10 images.")
+                    else:
+                        st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
+                        st.success("Text extraction complete!")
 
-    # Document generation logic
-    if st.session_state.extracted_text:
-        # Allow the user to select the output format
-        output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
-        if output_format:
-            st.session_state.output_format = output_format
+        # Document generation logic
+        if st.session_state.extracted_text:
+            # Allow the user to select the output format
+            output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
+            if output_format:
+                st.session_state.output_format = output_format
 
-        # Generate document only when the button is clicked
-        if st.button("Generate Document"):
-            with st.spinner("Preparing your document..."):
-                if st.session_state.output_format == "Word":
-                    file_path = generate_word_document(st.session_state.extracted_text)
-                else:
-                    file_path = generate_pdf_document(st.session_state.extracted_text)
+            # Generate document only when the button is clicked
+            if st.button("Generate Document"):
+                with st.spinner("Preparing your document..."):
+                    if st.session_state.output_format == "Word":
+                        file_path = generate_word_document(st.session_state.extracted_text)
+                    else:
+                        file_path = generate_pdf_document(st.session_state.extracted_text)
 
-                st.session_state.file_path = file_path
-                st.success(f"{st.session_state.output_format} document ready!")
+                    st.session_state.file_path = file_path
+                    st.success(f"{st.session_state.output_format} document ready!")
 
             # Display the download button if the document is ready
             if st.session_state.file_path:
                 with open(st.session_state.file_path, "rb") as file:
-                    st.download_button(
+                    download_button_clicked = st.download_button(
                         label=f"Download {st.session_state.output_format} Document",
                         data=file,
                         file_name=os.path.basename(st.session_state.file_path),
                         mime="application/octet-stream",
                     )
+
+                    # Trigger the end screen after download
+                    if download_button_clicked:
+                        st.session_state.download_complete = True
+                        st.experimental_rerun()
+    else:
+        # Display the end screen
+        st.info("Do you want to use the app again?")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Yes, Reset"):
+                reset_session()  # Clear all data and start from the beginning
+        with col2:
+            if st.button("No, Exit"):
+                st.success("Thanks for using the app!")
+                st.session_state.user_lock = False  # Release the lock
+                st.stop()  # Stop all further execution
 
 if __name__ == "__main__":
     main()
