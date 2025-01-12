@@ -4,7 +4,6 @@ from PIL import Image
 import os
 from docx import Document
 from fpdf import FPDF
-import time
 
 @st.cache_resource
 def load_easyocr_reader():
@@ -60,22 +59,14 @@ def generate_pdf_document(extracted_text):
 def main():
     st.title("Image Text Extraction App")
 
-    # Add message and LinkedIn logo with animation
+    # Add message and LinkedIn logo without animation
     st.markdown(
         """<div style='text-align: right;'>
         <strong style='color: green;'>Say Hi! to the developer</strong>
         <a href='https://www.linkedin.com/in/amanmiglani/' target='_blank'>
-        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px; animation: pulse 2s infinite;' />
+        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px;' />
         </a>
-        </div>
-        <style>
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        </style>
-        """,
+        </div>""",
         unsafe_allow_html=True
     )
 
@@ -106,9 +97,6 @@ def main():
                                 output_path = generate_word_document(extracted_text)
                             elif output_format == "PDF":
                                 output_path = generate_pdf_document(extracted_text)
-
-                            # Artificial delay to ensure spinner visibility
-                            time.sleep(1)
 
                         with open(output_path, "rb") as file:
                             st.download_button(
