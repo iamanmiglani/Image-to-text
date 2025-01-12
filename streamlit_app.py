@@ -1,6 +1,7 @@
 import streamlit as st
 import easyocr
 from PIL import Image
+import pyheif
 import os
 from docx import Document
 from fpdf import FPDF
@@ -9,12 +10,26 @@ from fpdf import FPDF
 def load_easyocr_reader():
     return easyocr.Reader(["en"], gpu=False)
 
+def convert_heic_to_png(image_file):
+    """Convert HEIC image to PNG format."""
+    heif_file = pyheif.read(image_file.read())
+    image = Image.frombytes(
+        heif_file.mode, heif_file.size, heif_file.data, "raw", heif_file.mode, heif_file.stride
+    )
+    return image
+
 def extract_text_from_images(images, reader):
     """Extract text from a list of images using EasyOCR."""
     extracted_text = {}
     for image_file in images:
-        # Convert file-like object to bytes
-        image_bytes = image_file.read()
+        if image_file.type == "image/heic":
+            # Convert HEIC to PNG
+            image = convert_heic_to_png(image_file)
+            image_bytes = image.tobytes()
+        else:
+            # Read non-HEIC images directly
+            image_bytes = image_file.read()
+
         # Pass bytes to EasyOCR
         results = reader.readtext(image_bytes, detail=0)
         extracted_text[image_file.name] = results
@@ -76,7 +91,7 @@ def main():
         st.session_state.submitted = False
 
     if not st.session_state.submitted:
-        uploaded_files = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+        uploaded_files = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True)
 
         if uploaded_files:
             with st.spinner("App is extracting text..."):
