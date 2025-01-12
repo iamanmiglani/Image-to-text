@@ -6,6 +6,10 @@ from docx import Document
 from fpdf import FPDF
 import time
 
+@st.cache_resource
+def load_easyocr_reader():
+    return easyocr.Reader(["en"], gpu=False)
+
 def extract_text_from_images(images, reader):
     """Extract text from a list of images using EasyOCR."""
     extracted_text = {}
@@ -63,7 +67,7 @@ def main():
         if len(uploaded_files) > 10:
             st.error("You can upload a maximum of 10 images.")
         else:
-            reader = easyocr.Reader(["en"], gpu=False)
+            reader = load_easyocr_reader()
 
             with st.spinner("App is extracting text..."):
                 extracted_text = extract_text_from_images(uploaded_files, reader)
