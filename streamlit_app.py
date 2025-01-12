@@ -10,12 +10,12 @@ import pyheif
 
 # EasyOCR supported languages
 EASYOCR_LANGUAGES = [
-    "af", "ar", "az", "bg", "bn", "bs", "ca", "cs", "cy", "da", "de", "en",
-    "es", "et", "fa", "fi", "fr", "ga", "gl", "gu", "he", "hi", "hr", "hu",
-    "id", "is", "it", "ja", "ka", "kk", "ko", "la", "lt", "lv", "mi", "ml",
-    "mr", "ms", "mt", "ne", "nl", "no", "pa", "pl", "pt", "ro", "ru", "si",
-    "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk",
-    "ur", "vi", "zh-cn", "zh-tw"
+    "af", "ar", "az", "bg", "bn", "bs", "cs", "cy", "da", "de", "en",
+    "es", "et", "fa", "fr", "ga", "hi", "hr", "hu",
+    "id", "is", "it", "ja", "ko", "la", "lt", "lv", "mi",
+    "mr", "ms", "mt", "ne", "nl", "no", "pl", "pt", "ro", "ru",
+    "sk", "sl", "sq", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk",
+    "ur", "vi"
 ]
 
 # Preload EasyOCR reader with all supported languages
