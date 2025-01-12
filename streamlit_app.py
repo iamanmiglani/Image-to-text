@@ -7,6 +7,7 @@ import tempfile
 import uuid
 from PIL import Image
 import pyheif
+import time
 
 # Preload EasyOCR reader
 @st.cache_resource
@@ -71,11 +72,13 @@ def main():
     st.title("Image Text Extraction App")
     reader = load_easyocr_reader()
 
+    # Initialize session state variables
     if "extracted_text" not in st.session_state:
         st.session_state.extracted_text = None
-
     if "file_path" not in st.session_state:
         st.session_state.file_path = None
+    if "idle_start_time" not in st.session_state:
+        st.session_state.idle_start_time = None
 
     uploaded_files = st.file_uploader(
         "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
@@ -119,7 +122,8 @@ def main():
 
                 # If the download button is clicked, ask to reset or stop
                 if download_button_clicked:
-                    st.info("Do you want to reset the screen and start over?")
+                    st.session_state.idle_start_time = time.time()
+                    st.info("Do you want to reset the screen or stop using the app?")
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("Yes, Reset"):
@@ -129,6 +133,16 @@ def main():
                         if st.button("No, Stop"):
                             st.success("Thank you! The app is now ready for the next user.")
                             st.stop()  # Stops all further actions
+
+    # Idle timeout logic
+    if st.session_state.idle_start_time:
+        elapsed_time = time.time() - st.session_state.idle_start_time
+        remaining_time = max(0, 120 - int(elapsed_time))
+        st.info(f"Please make a choice within {remaining_time // 60} min {remaining_time % 60} sec.")
+        if elapsed_time > 120:
+            st.warning("Time's up! Resetting the app for the next user.")
+            reset_session()
+            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
