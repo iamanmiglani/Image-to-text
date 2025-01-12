@@ -7,19 +7,15 @@ import tempfile
 import uuid
 from PIL import Image
 import pyheif
-import time
+import redis
 from datetime import datetime, timedelta
 
-# Global lock timeout in seconds
-LOCK_TIMEOUT = 300  # 5 minutes
+# Connect to Redis for centralized lock management
+redis_client = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
 
-# Initialize lock tracking in session state
-if "lock_time" not in st.session_state:
-    st.session_state.lock_time = None
-if "user_lock" not in st.session_state:
-    st.session_state.user_lock = False
-if "current_user" not in st.session_state:
-    st.session_state.current_user = False
+# Constants for lock management
+LOCK_KEY = "app_lock"
+LOCK_TIMEOUT = 300  # 5 minutes
 
 # Preload EasyOCR reader
 @st.cache_resource
@@ -79,34 +75,45 @@ def generate_pdf_document(extracted_text):
 
 def reset_session():
     """Clear all session variables and reload the app."""
-    st.session_state.user_lock = False  # Release the lock
+    release_lock()
     st.session_state.current_user = False
-    st.session_state.lock_time = None
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.experimental_rerun()
 
-def check_lock_status():
-    """Check if the lock has expired and release it if necessary."""
-    if st.session_state.lock_time:
-        elapsed_time = datetime.now() - st.session_state.lock_time
-        if elapsed_time.total_seconds() > LOCK_TIMEOUT:
-            st.session_state.user_lock = False
-            st.session_state.current_user = False
-            st.session_state.lock_time = None
+def is_app_locked():
+    """Check if the app is currently locked."""
+    lock = redis_client.get(LOCK_KEY)
+    if lock:
+        lock_time = datetime.fromisoformat(lock)
+        if datetime.now() > lock_time + timedelta(seconds=LOCK_TIMEOUT):
+            # Lock expired, release it
+            redis_client.delete(LOCK_KEY)
+            return False
+        return True
+    return False
+
+def acquire_lock():
+    """Acquire the lock for the app."""
+    redis_client.set(LOCK_KEY, datetime.now().isoformat())
+
+def release_lock():
+    """Release the lock for the app."""
+    redis_client.delete(LOCK_KEY)
 
 def main():
-    # Check lock status and timeout
-    check_lock_status()
+    if "current_user" not in st.session_state:
+        st.session_state.current_user = False
 
-    if st.session_state.user_lock and not st.session_state.current_user:
+    # Check lock status
+    if is_app_locked() and not st.session_state.current_user:
         st.warning("The app is currently in use by another user. Please try again later.")
         return
 
-    if not st.session_state.user_lock:
-        st.session_state.user_lock = True
+    # Acquire lock for the first user
+    if not st.session_state.current_user:
+        acquire_lock()
         st.session_state.current_user = True
-        st.session_state.lock_time = datetime.now()
 
     st.title("Image Text Extraction App")
 
