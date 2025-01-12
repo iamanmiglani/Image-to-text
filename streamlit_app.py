@@ -8,8 +8,10 @@ def extract_text_from_images(images, reader):
     """Extract text from a list of images using EasyOCR."""
     extracted_text = {}
     for image_file in images:
-        image = Image.open(image_file)
-        results = reader.readtext(image_file, detail=0)
+        # Convert file-like object to bytes
+        image_bytes = image_file.read()
+        # Pass bytes to EasyOCR
+        results = reader.readtext(image_bytes, detail=0)
         extracted_text[image_file.name] = results
     return extracted_text
 
