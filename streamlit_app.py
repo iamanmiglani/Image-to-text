@@ -5,7 +5,7 @@ import os
 from docx import Document
 from fpdf import FPDF
 import time
-
+# Perfect 1
 @st.cache_resource
 def load_easyocr_reader():
     return easyocr.Reader(["en"], gpu=False)
