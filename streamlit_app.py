@@ -111,11 +111,17 @@ def main():
         st.session_state.last_activity = time.time()
     if "output_format" not in st.session_state:
         st.session_state.output_format = None
+    if "idle_timer" not in st.session_state:
+        st.session_state.idle_timer = 120
 
     # Check for inactivity
-    if time.time() - st.session_state.last_activity > 120:
+    elapsed_time = time.time() - st.session_state.last_activity
+    if elapsed_time > 120:
         st.error("Too many requests, we are working on it.")
         st.stop()
+
+    remaining_time = max(0, 120 - int(elapsed_time))
+    st.info(f"The screen will reset in {remaining_time // 60} min {remaining_time % 60} sec if idle.")
 
     # File upload
     uploaded_files = st.file_uploader(
@@ -136,7 +142,7 @@ def main():
     # Output format selection
     if st.session_state.uploaded:
         st.session_state.output_format = st.selectbox(
-            "Select Output Format", ["Word", "PDF"]
+            "Select Output Format", ["Word", "PDF"], disabled=not st.session_state.uploaded
         )
 
     # Generate and download document
@@ -155,9 +161,10 @@ def main():
                         data=file,
                         file_name=os.path.basename(output_path),
                         mime="application/octet-stream",
+                        on_click=lambda: st.session_state.update(
+                            uploaded=False, submitted=False, last_activity=time.time(), output_format=None
+                        )
                     )
-
-                st.session_state.submitted = True
 
     # Start over button
     if st.session_state.submitted:
