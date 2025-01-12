@@ -1,5 +1,4 @@
 import streamlit as st
-import time
 import os
 from docx import Document
 from fpdf import FPDF
@@ -72,72 +71,64 @@ def main():
     st.title("Image Text Extraction App")
     reader = load_easyocr_reader()
 
-    if "start_time" not in st.session_state:
-        st.session_state.start_time = None
+    if "extracted_text" not in st.session_state:
+        st.session_state.extracted_text = None
+
+    if "file_path" not in st.session_state:
+        st.session_state.file_path = None
 
     uploaded_files = st.file_uploader(
         "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
     )
 
     if uploaded_files:
-        with st.spinner("Extracting text..."):
-            if len(uploaded_files) > 10:
-                st.error("You can upload a maximum of 10 images.")
-            else:
-                extracted_text = extract_text_from_images(uploaded_files, reader)
-                st.success("Text extraction complete!")
-                st.session_state["extracted_text"] = extracted_text
+        if st.session_state.extracted_text is None:
+            with st.spinner("Extracting text..."):
+                if len(uploaded_files) > 10:
+                    st.error("You can upload a maximum of 10 images.")
+                else:
+                    st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
+                    st.success("Text extraction complete!")
 
-                # Select output format
-                output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
-                if output_format:
-                    st.session_state["output_format"] = output_format
+    if st.session_state.extracted_text:
+        # Allow the user to select the output format
+        output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
+        if output_format:
+            st.session_state.output_format = output_format
 
-                # Generate document only when button is clicked
-                if st.button("Generate Document"):
-                    with st.spinner("Preparing your document..."):
-                        if output_format == "Word":
-                            file_path = generate_word_document(extracted_text)
-                        else:
-                            file_path = generate_pdf_document(extracted_text)
+        # Generate document only when the button is clicked
+        if st.button("Generate Document"):
+            with st.spinner("Preparing your document..."):
+                if st.session_state.output_format == "Word":
+                    file_path = generate_word_document(st.session_state.extracted_text)
+                else:
+                    file_path = generate_pdf_document(st.session_state.extracted_text)
 
-                        st.session_state["file_path"] = file_path
-                        st.success(f"{output_format} document ready!")
+                st.session_state.file_path = file_path
+                st.success(f"{st.session_state.output_format} document ready!")
 
-                        # Start timer for download
-                        st.session_state.start_time = time.time()
+        # Display the download button if the document is ready
+        if st.session_state.file_path:
+            with open(st.session_state.file_path, "rb") as file:
+                download_button_clicked = st.download_button(
+                    label=f"Download {st.session_state.output_format} Document",
+                    data=file,
+                    file_name=os.path.basename(st.session_state.file_path),
+                    mime="application/octet-stream",
+                )
 
-                        # Download button
-                        with open(file_path, "rb") as file:
-                            download_button_clicked = st.download_button(
-                                label=f"Download {output_format} Document",
-                                data=file,
-                                file_name=os.path.basename(file_path),
-                                mime="application/octet-stream",
-                            )
-
-                            # If download button is clicked, ask to reset or stop
-                            if download_button_clicked:
-                                st.info("Do you want to reset the screen and start over?")
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    if st.button("Yes, Reset"):
-                                        reset_session()
-                                        st.experimental_rerun()
-                                with col2:
-                                    if st.button("No, Stop"):
-                                        st.success("Thank you! The app is now ready for the next user.")
-                                        st.stop()  # Stops all further actions
-
-    # Timer to reset session
-    if st.session_state.start_time:
-        elapsed_time = time.time() - st.session_state.start_time
-        remaining_time = max(0, 120 - int(elapsed_time))
-        st.info(f"Please download your document within {remaining_time // 60} min {remaining_time % 60} sec.")
-        if elapsed_time > 120:
-            st.warning("Time's up! Resetting the app for the next user.")
-            reset_session()
-            st.experimental_rerun()
+                # If the download button is clicked, ask to reset or stop
+                if download_button_clicked:
+                    st.info("Do you want to reset the screen and start over?")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Yes, Reset"):
+                            reset_session()
+                            st.experimental_rerun()
+                    with col2:
+                        if st.button("No, Stop"):
+                            st.success("Thank you! The app is now ready for the next user.")
+                            st.stop()  # Stops all further actions
 
 if __name__ == "__main__":
     main()
