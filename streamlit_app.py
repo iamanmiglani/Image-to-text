@@ -81,73 +81,68 @@ def main():
         st.session_state.extracted_text = None
     if "file_path" not in st.session_state:
         st.session_state.file_path = None
-    if "prompt_user" not in st.session_state:
-        st.session_state.prompt_user = False  # Track if user prompt is active
+    if "download_complete" not in st.session_state:
+        st.session_state.download_complete = False
 
-    # File uploader
-    uploaded_files = st.file_uploader(
-        "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
-    )
+    if not st.session_state.download_complete:
+        # File uploader
+        uploaded_files = st.file_uploader(
+            "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
+        )
 
-    # Text extraction logic
-    if uploaded_files:
-        if st.session_state.extracted_text is None:
-            with st.spinner("Extracting text..."):
-                if len(uploaded_files) > 10:
-                    st.error("You can upload a maximum of 10 images.")
-                else:
-                    st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
-                    st.success("Text extraction complete!")
+        # Text extraction logic
+        if uploaded_files:
+            if st.session_state.extracted_text is None:
+                with st.spinner("Extracting text..."):
+                    if len(uploaded_files) > 10:
+                        st.error("You can upload a maximum of 10 images.")
+                    else:
+                        st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
+                        st.success("Text extraction complete!")
 
-    # Document generation logic
-    if st.session_state.extracted_text:
-        # Allow the user to select the output format
-        output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
-        if output_format:
-            st.session_state.output_format = output_format
+        # Document generation logic
+        if st.session_state.extracted_text:
+            # Allow the user to select the output format
+            output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
+            if output_format:
+                st.session_state.output_format = output_format
 
-        # Generate document only when the button is clicked
-        if st.button("Generate Document"):
-            with st.spinner("Preparing your document..."):
-                if st.session_state.output_format == "Word":
-                    file_path = generate_word_document(st.session_state.extracted_text)
-                else:
-                    file_path = generate_pdf_document(st.session_state.extracted_text)
+            # Generate document only when the button is clicked
+            if st.button("Generate Document"):
+                with st.spinner("Preparing your document..."):
+                    if st.session_state.output_format == "Word":
+                        file_path = generate_word_document(st.session_state.extracted_text)
+                    else:
+                        file_path = generate_pdf_document(st.session_state.extracted_text)
 
-                st.session_state.file_path = file_path
-                st.success(f"{st.session_state.output_format} document ready!")
+                    st.session_state.file_path = file_path
+                    st.success(f"{st.session_state.output_format} document ready!")
 
-        # Display the download button if the document is ready
-        if st.session_state.file_path:
-            with open(st.session_state.file_path, "rb") as file:
-                download_button_clicked = st.download_button(
-                    label=f"Download {st.session_state.output_format} Document",
-                    data=file,
-                    file_name=os.path.basename(st.session_state.file_path),
-                    mime="application/octet-stream",
-                )
+            # Display the download button if the document is ready
+            if st.session_state.file_path:
+                with open(st.session_state.file_path, "rb") as file:
+                    download_button_clicked = st.download_button(
+                        label=f"Download {st.session_state.output_format} Document",
+                        data=file,
+                        file_name=os.path.basename(st.session_state.file_path),
+                        mime="application/octet-stream",
+                    )
 
-                # Trigger user prompt after download
-                if download_button_clicked:
-                    st.session_state.prompt_user = True
-                    reset_session_data(reader)
-
-    # Prompt the user to reset or stop
-    if st.session_state.prompt_user:
-        st.info("Do you want to reuse the app?")
+                    # Trigger the end screen after download
+                    if download_button_clicked:
+                        st.session_state.download_complete = True
+                        st.experimental_rerun()
+    else:
+        # Display the end screen
+        st.info("Do you want to use the app again?")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Yes, Reset"):
                 reset_session()  # Clear all data and start from the beginning
         with col2:
-            if st.button("No, Stop"):
+            if st.button("No, Exit"):
                 st.success("Thanks for using the app!")
                 st.stop()  # Stop all further execution
-
-def reset_session_data(reader):
-    """Clear backend data and prepare OCR for the next user."""
-    st.session_state.extracted_text = None
-    st.session_state.file_path = None
 
 if __name__ == "__main__":
     main()
