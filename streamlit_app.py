@@ -121,7 +121,7 @@ def main():
         st.stop()
 
     remaining_time = max(0, 120 - int(elapsed_time))
-    st.info(f"The screen will reset in {remaining_time // 60} min {remaining_time % 60} sec if idle.")
+    st.info(f"The screen will reset in {remaining_time // 60} min {remaining_time % 60} sec, if idle.")
 
     # File upload
     uploaded_files = st.file_uploader(
