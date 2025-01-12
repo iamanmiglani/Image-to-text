@@ -60,11 +60,12 @@ def generate_pdf_document(extracted_text):
 def main():
     st.title("Image Text Extraction App")
 
-    # Add LinkedIn logo with hyperlink
+    # Add message and LinkedIn logo with hyperlink
     st.markdown(
         """<div style='text-align: right;'>
+        <strong style='color: green;'>Say Hi! to the developer</strong>
         <a href='https://www.linkedin.com/in/amanmiglani/' target='_blank'>
-        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px;'/>
+        <img src='https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png' alt='LinkedIn' style='width:40px; height:40px; margin-left: 10px;'/>
         </a>
         </div>""",
         unsafe_allow_html=True
