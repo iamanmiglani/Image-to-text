@@ -1,6 +1,6 @@
 import streamlit as st
 import easyocr
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import os
 from docx import Document
 from fpdf import FPDF
