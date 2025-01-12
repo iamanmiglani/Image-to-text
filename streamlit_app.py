@@ -66,9 +66,8 @@ def generate_pdf_document(extracted_text):
     return output_path
 
 def reset_session():
-    """Clear all session variables and force app reload."""
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
+    """Clear all session variables and force a full UI reset."""
+    st.session_state.clear()
     st.experimental_rerun()
 
 def main():
@@ -83,10 +82,12 @@ def main():
     if "idle_start_time" not in st.session_state:
         st.session_state.idle_start_time = None
 
+    # File uploader
     uploaded_files = st.file_uploader(
         "Upload Images (Max 10)", type=["jpg", "jpeg", "png", "heic"], accept_multiple_files=True
     )
 
+    # Text extraction logic
     if uploaded_files:
         if st.session_state.extracted_text is None:
             with st.spinner("Extracting text..."):
@@ -96,6 +97,7 @@ def main():
                     st.session_state.extracted_text = extract_text_from_images(uploaded_files, reader)
                     st.success("Text extraction complete!")
 
+    # Document generation logic
     if st.session_state.extracted_text:
         # Allow the user to select the output format
         output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
