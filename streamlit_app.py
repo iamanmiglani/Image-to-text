@@ -5,7 +5,7 @@ import os
 from docx import Document
 from fpdf import FPDF
 import time
-# Perfect 1
+
 @st.cache_resource
 def load_easyocr_reader():
     return easyocr.Reader(["en"], gpu=False)
@@ -68,37 +68,38 @@ def main():
         uploaded_files = st.file_uploader("Upload Images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
         if uploaded_files:
-            if len(uploaded_files) > 10:
-                st.error("You can upload a maximum of 10 images.")
-            else:
-                reader = load_easyocr_reader()
+            with st.spinner("App is extracting text..."):
+                if len(uploaded_files) > 10:
+                    st.error("You can upload a maximum of 10 images.")
+                else:
+                    reader = load_easyocr_reader()
 
-                extracted_text = extract_text_from_images(uploaded_files, reader)
+                    extracted_text = extract_text_from_images(uploaded_files, reader)
 
-                st.success("Text extracted from images successfully!")
+                    st.success("Text extracted from images successfully!")
 
-                output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
+                    output_format = st.selectbox("Select Output Format", ["Word", "PDF"])
 
-                if st.button("Generate Document"):
-                    with st.spinner("Preparing your document..."):
-                        if output_format == "Word":
-                            output_path = generate_word_document(extracted_text)
-                        elif output_format == "PDF":
-                            output_path = generate_pdf_document(extracted_text)
+                    if st.button("Generate Document"):
+                        with st.spinner("Preparing your document..."):
+                            if output_format == "Word":
+                                output_path = generate_word_document(extracted_text)
+                            elif output_format == "PDF":
+                                output_path = generate_pdf_document(extracted_text)
 
-                        # Artificial delay to ensure spinner visibility
-                        time.sleep(1)
+                            # Artificial delay to ensure spinner visibility
+                            time.sleep(1)
 
-                    with open(output_path, "rb") as file:
-                        st.download_button(
-                            label=f"Download {output_format} Document",
-                            data=file,
-                            file_name=os.path.basename(output_path),
-                            mime="application/octet-stream",
-                        )
-                    
-                    # Reset the state after download
-                    st.session_state.submitted = True
+                        with open(output_path, "rb") as file:
+                            st.download_button(
+                                label=f"Download {output_format} Document",
+                                data=file,
+                                file_name=os.path.basename(output_path),
+                                mime="application/octet-stream",
+                            )
+                        
+                        # Reset the state after download
+                        st.session_state.submitted = True
     else:
         st.button("Start Over", on_click=lambda: st.session_state.update(submitted=False))
 
