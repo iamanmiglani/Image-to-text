@@ -14,43 +14,9 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# File-based lock and queue configuration
+# File-based lock configuration
 LOCK_FILE = "/tmp/app_lock.lock"
-QUEUE_FILE = "/tmp/user_queue.json"
 LOCK_TIMEOUT = 300  # 5 minutes
-
-def load_queue():
-    """Load the queue from a file."""
-    if os.path.exists(QUEUE_FILE):
-        with open(QUEUE_FILE, "r") as file:
-            return json.load(file)
-    return []
-
-def save_queue(queue):
-    """Save the queue to a file."""
-    with open(QUEUE_FILE, "w") as file:
-        json.dump(queue, file)
-
-def enqueue_user(user_id):
-    """Add a user to the end of the queue."""
-    queue = load_queue()
-    if user_id not in queue:
-        queue.append(user_id)
-        save_queue(queue)
-
-def dequeue_user():
-    """Remove and return the first user in the queue."""
-    queue = load_queue()
-    if queue:
-        next_user = queue.pop(0)
-        save_queue(queue)
-        return next_user
-    return None
-
-def get_current_user():
-    """Get the current user (first in the queue)."""
-    queue = load_queue()
-    return queue[0] if queue else None
 
 def acquire_lock():
     """Create a lock file if it doesn't exist or belongs to the current session."""
@@ -150,15 +116,12 @@ def main():
         # Unique session identifier (e.g., user IP or session ID)
         st.session_state.user_id = str(uuid.uuid4())  # Generate unique user ID
 
-    # Add the user to the queue if not already present
-    enqueue_user(st.session_state.user_id)
-
-    # Check if the current user is at the front of the queue
-    if st.session_state.user_id != get_current_user():
-        st.warning("The app is currently in use by another user. Please wait for your turn.")
+    # Try to acquire the lock for the current user
+    if not acquire_lock():
+        st.warning("The app is currently in use by another user. Please try again later.")
         st.stop()
 
-    # User is at the front of the queue
+    # User has acquired the lock
     st.title("Image Text Extraction App")
 
     # Load EasyOCR reader (cached for performance)
@@ -222,8 +185,6 @@ def main():
             if st.button("No, Exit"):
                 st.success("Thanks for using the app!")
                 release_lock()  # Release the lock for others
-                enqueue_user(st.session_state.user_id)  # Add user to the end of the queue
-                dequeue_user()  # Allow the next user in the queue
                 st.stop()  # Stop the app completely
 
 if __name__ == "__main__":
