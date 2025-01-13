@@ -23,16 +23,24 @@ def acquire_lock():
     try:
         if os.path.exists(LOCK_FILE):
             with open(LOCK_FILE, "r") as lock_file:
-                lock_time = datetime.fromisoformat(lock_file.read().strip())
+                lock_data = json.load(lock_file)
+                lock_user = lock_data.get("user_id")
+                lock_time = datetime.fromisoformat(lock_data.get("timestamp"))
+
+                # Check if the lock belongs to the current user
+                if lock_user == st.session_state.user_id:
+                    return True
+
+                # Check if the lock has expired
                 if datetime.now() > lock_time + timedelta(seconds=LOCK_TIMEOUT):
-                    # Lock expired, remove it
-                    os.remove(LOCK_FILE)
-                    logging.debug("Expired lock file removed.")
+                    os.remove(LOCK_FILE)  # Expired lock
                 else:
                     logging.debug("Lock is active. Another user is using the app.")
                     return False
+
+        # Create or update the lock file for the current user
         with open(LOCK_FILE, "w") as lock_file:
-            lock_file.write(datetime.now().isoformat())  # Write the current lock time
+            json.dump({"user_id": st.session_state.user_id, "timestamp": datetime.now().isoformat()}, lock_file)
             logging.debug("Lock acquired successfully.")
         return True
     except Exception as e:
