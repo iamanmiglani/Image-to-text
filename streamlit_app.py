@@ -17,7 +17,6 @@ logging.basicConfig(level=logging.DEBUG)
 LOCK_FILE = "/tmp/app_lock.lock"
 LOCK_TIMEOUT = 300  # 5 minutes
 
-
 def acquire_lock():
     """Create a lock file if it doesn't exist or belongs to the current session."""
     try:
@@ -27,15 +26,17 @@ def acquire_lock():
                 if datetime.now() > lock_time + timedelta(seconds=LOCK_TIMEOUT):
                     # Lock expired, remove it
                     os.remove(LOCK_FILE)
+                    logging.debug("Expired lock file removed.")
                 else:
-                    return False  # Lock is held by another session
+                    logging.debug("Lock is active. Another user is using the app.")
+                    return False
         with open(LOCK_FILE, "w") as lock_file:
             lock_file.write(datetime.now().isoformat())  # Write the current lock time
+            logging.debug("Lock acquired successfully.")
         return True
     except Exception as e:
         logging.error(f"Error in acquire_lock: {e}")
         raise
-
 
 def release_lock():
     """Remove the lock file."""
@@ -46,25 +47,24 @@ def release_lock():
         logging.error(f"Error in release_lock: {e}")
         raise
 
-
 def is_lock_expired():
     """Check if the lock file exists and has expired."""
     try:
         if os.path.exists(LOCK_FILE):
             with open(LOCK_FILE, "r") as lock_file:
                 lock_time = datetime.fromisoformat(lock_file.read().strip())
-                return datetime.now() > lock_time + timedelta(seconds=LOCK_TIMEOUT)
-        return True
+                if datetime.now() > lock_time + timedelta(seconds=LOCK_TIMEOUT):
+                    logging.debug("Lock expired.")
+                    return True
+        return False
     except Exception as e:
         logging.error(f"Error in is_lock_expired: {e}")
         raise
-
 
 # Preload EasyOCR reader
 @st.cache_resource
 def load_easyocr_reader():
     return easyocr.Reader(["en"], gpu=False)
-
 
 def convert_heic_to_png(image_file):
     heif_file = pyheif.read(image_file.read())
@@ -72,7 +72,6 @@ def convert_heic_to_png(image_file):
         heif_file.mode, heif_file.size, heif_file.data, "raw", heif_file.mode, heif_file.stride
     )
     return image
-
 
 def extract_text_from_images(images, reader):
     extracted_text = {}
@@ -87,7 +86,6 @@ def extract_text_from_images(images, reader):
         extracted_text[image_file.name] = results
     return extracted_text
 
-
 def generate_word_document(extracted_text):
     doc = Document()
     doc.add_heading("Extracted Text from Images", level=1)
@@ -99,7 +97,6 @@ def generate_word_document(extracted_text):
     output_path = os.path.join(temp_dir, f"{uuid.uuid4()}_extracted_text.docx")
     doc.save(output_path)
     return output_path
-
 
 def generate_pdf_document(extracted_text):
     pdf = FPDF()
@@ -120,14 +117,12 @@ def generate_pdf_document(extracted_text):
     pdf.output(output_path)
     return output_path
 
-
 def reset_session():
     """Clear all session variables and reload the app."""
     release_lock()
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.experimental_rerun()
-
 
 def main():
     if "current_user" not in st.session_state:
@@ -197,13 +192,12 @@ def main():
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Yes, Reset"):
-                reset_session()
+                reset_session()  # Clear session and restart
         with col2:
             if st.button("No, Exit"):
                 st.success("Thanks for using the app!")
-                reset_session()
-                st.stop()
-
+                release_lock()  # Release the lock for others
+                st.stop()  # Stop the app completely
 
 if __name__ == "__main__":
     main()
